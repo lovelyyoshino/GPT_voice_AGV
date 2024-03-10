@@ -1,34 +1,34 @@
 import os
 from typing import Optional
 
-from realtime_ai_character.audio.text_to_speech.base import TextToSpeech
-
+from text_to_speech.base import TextToSpeech
+import utils.json_analysis as ja
 
 def get_text_to_speech(tts: Optional[str] = None) -> TextToSpeech:
     if (
         not tts
-        or (tts == "ELEVEN_LABS" and not os.getenv("ELEVEN_LABS_API_KEY"))
-        or (tts == "GOOGLE_TTS" and not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
-        or (tts == "XTTS" and not os.getenv("XTTS_API_KEY"))
+        or (tts == "ELEVEN_LABS" and not ja.get_nested_value("config/params.json",["env","ELEVEN_LABS_API_KEY"], None))
+        or (tts == "GOOGLE_TTS" and not ja.get_nested_value("config/params.json",["env","GOOGLE_APPLICATION_CREDENTIALS"], None))
+        or (tts == "XTTS" and not ja.get_nested_value("config/params.json",["env","XTTS_API_KEY"], None))
     ):
         tts = "EDGE_TTS"
     if tts == "ELEVEN_LABS":
-        from realtime_ai_character.audio.text_to_speech.elevenlabs import ElevenLabs
+        from text_to_speech.elevenlabs import ElevenLabs
 
         ElevenLabs.initialize()
         return ElevenLabs.get_instance()
     elif tts == "GOOGLE_TTS":
-        from realtime_ai_character.audio.text_to_speech.google_cloud_tts import GoogleCloudTTS
+        from text_to_speech.google_cloud_tts import GoogleCloudTTS
 
         GoogleCloudTTS.initialize()
         return GoogleCloudTTS.get_instance()
     elif tts == "EDGE_TTS":
-        from realtime_ai_character.audio.text_to_speech.edge_tts import EdgeTTS
+        from text_to_speech.edge_tts import EdgeTTS
 
         EdgeTTS.initialize()
         return EdgeTTS.get_instance()
     elif tts == "XTTS":
-        from realtime_ai_character.audio.text_to_speech.xtts import XTTS
+        from audio.text_to_speech.xtts import XTTS
 
         XTTS.initialize()
         return XTTS.get_instance()

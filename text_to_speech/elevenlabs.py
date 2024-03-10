@@ -8,13 +8,13 @@ import httpx
 from text_to_speech.base import TextToSpeech
 from utils.logger import get_logger
 from utils.utils import Singleton, timed
-
+import utils.json_analysis as ja
 
 logger = get_logger(__name__)
 
 ELEVEN_LABS_MULTILINGUAL_MODEL = (
     "eleven_multilingual_v2"
-    if os.getenv("ELEVEN_LABS_USE_V2") == "true"
+    if ja.get_nested_value("config/params.json",["env","ELEVEN_LABS_USE_V2"], None)== "true"
     else "eleven_multilingual_v1"
 )
 

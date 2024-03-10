@@ -9,13 +9,13 @@ from text_to_speech.base import TextToSpeech
 from text_to_speech.utils import MP3ToUlaw
 from utils.logger import get_logger
 from utils.utils import Singleton, timed
-
+import utils.json_analysis as ja
 
 logger = get_logger(__name__)
 
 DEBUG = False
-API_KEY = os.getenv("XTTS_API_KEY", "")
-API_URL = os.getenv("XTTS_API_URL", "")
+API_KEY = ja.get_nested_value("config/params.json",["env“,”XTTS_API_KEY"], "")
+API_URL = ja.get_nested_value("config/params.json",["env“,”XTTS_API_URL"], "")
 
 
 class XTTS(Singleton, TextToSpeech):

@@ -21,6 +21,7 @@ from utils.utils import (
     WhisperXResponse,
 )
 
+import utils.json_analysis as ja
 
 logger = get_logger(__name__)
 
@@ -71,15 +72,14 @@ ALIGN_MODEL_LANGUAGE_CODE = [
 
 load_dotenv()
 
-MODEL = os.getenv("LOCAL_WHISPER_MODEL", "base")
-DIARIZATION = os.getenv("JOURNAL_MODE", "false").lower() == "true"
-HF_ACCESS_TOKEN = os.getenv("HF_ACCESS_TOKEN", "")
-OPENCC = os.getenv("OPENCC", "")
+MODEL = ja.get_nested_value("config/params.json",["env","LOCAL_WHISPER_MODEL"], "base")
+DIARIZATION = ja.get_nested_value("config/params.json",["env","DIARIZATION"], "false").lower() == "true"
+HF_ACCESS_TOKEN = ja.get_nested_value("config/params.json",["env","HF_ACCESS_TOKEN"], "")
+OPENCC = ja.get_nested_value("config/params.json",["env","OPENCC"], "")
 
-WHISPER_X_API_KEY = os.getenv("WHISPER_X_API_KEY", "")
-WHISPER_X_API_URL = os.getenv("WHISPER_X_API_URL", "")
-WHISPER_X_API_URL_JOURNAL = os.getenv("WHISPER_X_API_URL_JOURNAL", "")
-
+WHISPER_X_API_KEY = ja.get_nested_value("config/params.json",["env","WHISPER_X_API_KEY"], "")
+WHISPER_X_API_URL = ja.get_nested_value("config/params.json",["env","WHISPER_X_API_URL"], "")
+WHISPER_X_API_URL_JOURNAL = ja.get_nested_value("config/params.json",["env","WHISPER_X_API_URL_JOURNAL"], "")
 
 class WhisperX(Singleton, SpeechToText):
     def __init__(self, use: str = "local"):

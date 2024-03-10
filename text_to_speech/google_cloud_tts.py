@@ -11,7 +11,7 @@ from google.oauth2 import service_account
 from text_to_speech.base import TextToSpeech
 from utils.logger import get_logger
 from utils.utils import Singleton, timed
-
+import utils.json_analysis as ja
 
 logger = get_logger(__name__)
 
@@ -28,7 +28,7 @@ config = types.SimpleNamespace(
             },
             "audioConfig": {"audioEncoding": "MP3"},
         },
-        "service_account_file": os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "default/path.json"),
+        "service_account_file": ja.get_nested_value("config/params.json",["env","GOOGLE_APPLICATION_CREDENTIALS"], "default/path.json"),
     }
 )
 

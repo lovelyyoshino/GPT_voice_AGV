@@ -4,22 +4,22 @@ from typing import Optional
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.schema import BaseMessage, HumanMessage
 
-from realtime_ai_character.database.chroma import get_chroma
+from utils.chroma import get_chroma
 from llm.base import AsyncCallbackAudioHandler, AsyncCallbackTextHandler, LLM
 from utils.logger import get_logger
 from utils.utils import Character, timed
-
+import utils.json_analysis as ja
 
 logger = get_logger(__name__)
 
 
 class OpenaiLlm(LLM):
     def __init__(self, model):
-        if os.getenv("OPENAI_API_TYPE") == "azure":
+        if ja.get_nested_value("config/params.json",["env","OPENAI_API_TYPE"], "openai")=="azure":
             from langchain.chat_models import AzureChatOpenAI
 
             self.chat_open_ai = AzureChatOpenAI(
-                deployment_name=os.getenv("OPENAI_API_MODEL_DEPLOYMENT_NAME", "gpt-35-turbo"),
+                deployment_name=ja.get_nested_value("config/params.json",["env","OPENAI_API_MODEL_DEPLOYMENT_NAME"], "gpt-35-turbo"), # "gpt-35-turbo
                 model=model,
                 temperature=0.5,
                 streaming=True,

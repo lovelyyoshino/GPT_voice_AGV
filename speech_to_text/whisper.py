@@ -10,15 +10,15 @@ from pydub import AudioSegment
 from speech_to_text.base import SpeechToText
 from utils.logger import get_logger
 from utils.utils import Singleton, timed
-
+import utils.json_analysis as ja
 
 logger = get_logger(__name__)
 
 config = types.SimpleNamespace(
     **{
-        "model": os.getenv("LOCAL_WHISPER_MODEL", "base"),
+        "model": ja.get_nested_value("config/params.json",["env","LOCAL_WHISPER_MODEL"], "base"),
         "language": "en",
-        "api_key": os.getenv("OPENAI_API_KEY"),
+        "api_key": ja.get_nested_value("config/params.json",["env","OPENAI_API_KEY"], None), # "OPENAI_API_KEY": "sk-..."
     }
 )
 

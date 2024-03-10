@@ -6,11 +6,11 @@ from edge_tts import Communicate, VoicesManager
 from text_to_speech.base import TextToSpeech
 from utils.logger import get_logger
 from utils.utils import Singleton, timed
-
+import utils.json_analysis as ja
 
 logger = get_logger(__name__)
 
-EDGE_TTS_DEFAULT_VOICE = os.getenv("EDGE_TTS_DEFAULT_VOICE", "en-US-ChristopherNeural")
+EDGE_TTS_DEFAULT_VOICE =  ja.get_nested_value("config/params.json",["env","EDGE_TTS_DEFAULT_VOICE"], "en-US-ChristopherNeural") # 'en-US-ChristopherNeural
 
 
 class EdgeTTS(Singleton, TextToSpeech):
