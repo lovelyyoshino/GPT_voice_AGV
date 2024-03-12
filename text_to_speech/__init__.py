@@ -28,7 +28,7 @@ def get_text_to_speech(tts: Optional[str] = None) -> TextToSpeech:
         EdgeTTS.initialize()
         return EdgeTTS.get_instance()
     elif tts == "XTTS":
-        from audio.text_to_speech.xtts import XTTS
+        from text_to_speech.xtts import XTTS
 
         XTTS.initialize()
         return XTTS.get_instance()
