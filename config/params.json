@@ -16,6 +16,7 @@
     "EDGE_TTS_DEFAULT_VOICE":"en-US-ChristopherNeural",
     "DATABASE_URL": "sqlite:///./test.db",
     "GCP_STORAGE_URL": "https://storage.googleapis.com/assistly",
-    "GCP_STORAGE_BUCKET_NAME": "assistly"
+    "GCP_STORAGE_BUCKET_NAME": "assistly",
+    "OVERWRITE_CHROMA": "true"
   }
 }

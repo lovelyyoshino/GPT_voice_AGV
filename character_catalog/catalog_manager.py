@@ -17,7 +17,7 @@ from utils.connection import get_db
 from utils.logger import get_logger
 from utils.character import Character as CharacterModel
 from utils.utils import Character, Singleton
-
+import utils.json_analysis as ja
 
 load_dotenv()
 logger = get_logger(__name__)
@@ -26,9 +26,9 @@ logger = get_logger(__name__)
 class CatalogManager(Singleton):
     def __init__(self):
         super().__init__()
-        overwrite = os.getenv("OVERWRITE_CHROMA") != "false"
+        overwrite = ja.get_nested_value("config/params.json",["env","OVERWRITE_CHROMA"], "false") != "false"
         # skip Chroma if Openai API key is not set
-        if os.getenv("OPENAI_API_KEY"):
+        if ja.get_nested_value("config/params.json",["env","OPENAI_API_KEY"], None):
             self.db = get_chroma()
         else:
             self.db = get_chroma(embedding=False)
@@ -75,7 +75,8 @@ class CatalogManager(Singleton):
 
             character_id = yaml_content["character_id"]
             character_name = yaml_content["character_name"]
-            voice_id_env = os.getenv(character_id.upper() + "_VOICE_ID")
+            env_name =character_id.upper() + "_VOICE_ID"
+            voice_id_env = ja.get_nested_value("config/params.json",["env",env_name], None) # "en-US-ChristopherNeural"
             voice_id = voice_id_env or str(yaml_content["voice_id"])
             order = yaml_content.get("order", 10**6)
             self.characters[character_id] = Character(
@@ -160,7 +161,7 @@ class CatalogManager(Singleton):
                 if character_model.author_id not in self.author_name_cache:
                     author_name = (
                         auth.get_user(character_model.author_id).display_name
-                        if os.getenv("USE_AUTH") == "true"
+                        if ja.get_nested_value("config/params.json",["env","USE_AUTH"]) == "true"
                         else "anonymous author"
                     )
                     self.author_name_cache[character_model.author_id] = author_name  # type: ignore

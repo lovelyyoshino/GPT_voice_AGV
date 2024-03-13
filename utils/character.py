@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Integer, JSON, String
 from sqlalchemy.inspection import inspect
 
-from database_base import Base
+from utils.database_base import Base
 
 
 class Character(Base):

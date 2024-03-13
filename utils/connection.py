@@ -3,11 +3,11 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
+import utils.json_analysis as ja
 
 load_dotenv()
 
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "")
+SQLALCHEMY_DATABASE_URL = ja.get_nested_value("config/params.json",["env","DATABASE_URL"], "")
 
 connect_args = {"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
 
