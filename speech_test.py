@@ -1,5 +1,10 @@
 from speech_to_text import get_speech_to_text, SpeechToText
 from text_to_speech import get_text_to_speech, TextToSpeech
+from character_catalog.catalog_manager import (
+    CatalogManager,
+    get_catalog_manager,
+)
+
 import speech_recognition as sr
 import asyncio
 import os
@@ -9,6 +14,9 @@ import asyncio
 
 # 运行主函数
 async def main():
+    catalog_manager = CatalogManager.initialize()
+    character = catalog_manager.get_character("bruce_wayne")
+    print(character.name, character.id,character.llm_system_prompt)
     # text_to_speech = get_text_to_speech()
     # audio_bytes = await text_to_speech.generate_audio(text="你好，我是培立，很高兴认识你。", voice_id="en-US-ChristopherNeural", language="zh-CN")
 

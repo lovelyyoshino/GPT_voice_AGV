@@ -12,11 +12,11 @@ from langchain.text_splitter import CharacterTextSplitter
 from llama_index import SimpleDirectoryReader
 from readerwriterlock import rwlock
 
-from realtime_ai_character.database.chroma import get_chroma
-from realtime_ai_character.database.connection import get_db
-from realtime_ai_character.logger import get_logger
-from realtime_ai_character.models.character import Character as CharacterModel
-from realtime_ai_character.utils import Character, Singleton
+from utils.chroma import get_chroma
+from utils.connection import get_db
+from utils.logger import get_logger
+from utils.character import Character as CharacterModel
+from utils.utils import Character, Singleton
 
 
 load_dotenv()
