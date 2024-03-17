@@ -30,7 +30,7 @@ initial_content_all = {
 }
 # 上下文
 set_context_all = {"不设置": ""}
-set_context_all.update(set_context)
+set_context_all.update(set_context)# 从set_context.py中导入
 
 # 自定义css、js
 css_code = """
@@ -121,6 +121,7 @@ css_code = """
     </style>
 """
 
+# 为了解决输入框的问题，需要在页面加载完成后注入一些js代码
 js_code = """
 <script>
 function checkElements() {

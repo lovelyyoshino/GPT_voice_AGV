@@ -148,7 +148,7 @@ def download_history(history: list):
     return output
 
 
-def filename_correction(filename: str) -> str:
+def filename_correction(filename: str) -> str:#去除文件名中的特殊字符
     pattern = r'[^\w\.-]'
     filename = re.sub(pattern, '', filename)
     return filename

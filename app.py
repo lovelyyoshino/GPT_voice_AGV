@@ -22,19 +22,19 @@ st.set_page_config(page_title="ChatGPT Assistant", layout="wide", page_icon="�
 # 自定义元素样式
 st.markdown(css_code, unsafe_allow_html=True)
 
-if "initial_settings" not in st.session_state:
+if "initial_settings" not in st.session_state:#初始化设置
     # 历史聊天窗口
-    st.session_state["path"] = "history_chats_file"
-    st.session_state["history_chats"] = get_history_chats(st.session_state["path"])
+    st.session_state["path"] = "history_chats_file"#聊天记录保存路径
+    st.session_state["history_chats"] = get_history_chats(st.session_state["path"])#获取聊天记录
     # ss参数初始化
-    st.session_state["delete_dict"] = {}
-    st.session_state["delete_count"] = 0
-    st.session_state["voice_flag"] = ""
-    st.session_state["user_voice_value"] = ""
-    st.session_state["error_info"] = ""
-    st.session_state["current_chat_index"] = 0
-    st.session_state["user_input_content"] = ""
-    # 读取全局设置
+    st.session_state["delete_dict"] = {}#删除字典
+    st.session_state["delete_count"] = 0#删除计数
+    st.session_state["voice_flag"] = ""#语音标志
+    st.session_state["user_voice_value"] = ""#用户语音值
+    st.session_state["error_info"] = ""#错误信息
+    st.session_state["current_chat_index"] = 0#当前聊天索引
+    st.session_state["user_input_content"] = ""#用户输入内容
+    # 读取全局设置，如果存在则加载
     if os.path.exists("./set.json"):
         with open("./set.json", "r", encoding="utf-8") as f:
             data_set = json.load(f)
@@ -43,11 +43,11 @@ if "initial_settings" not in st.session_state:
     # 设置完成
     st.session_state["initial_settings"] = True
 
-with st.sidebar:
+with st.sidebar:#侧边栏
     st.markdown("# 🤖 聊天窗口")
     # 创建容器的目的是配合自定义组件的监听操作
     chat_container = st.container()
-    with chat_container:
+    with chat_container:#聊天容器
         current_chat = st.radio(
             label="历史聊天窗口",
             format_func=lambda x: x.split("_")[0] if "_" in x else x,
@@ -57,7 +57,7 @@ with st.sidebar:
             key="current_chat"
             + st.session_state["history_chats"][st.session_state["current_chat_index"]],
             # on_change=current_chat_callback  # 此处不适合用回调，无法识别到窗口增减的变动
-        )
+        )#创建一个单选框，用于选择聊天窗口
     st.write("---")
 
 
@@ -69,27 +69,27 @@ def write_data(new_chat_name=current_chat):
             "top_p": st.session_state["top_p" + current_chat],
             "presence_penalty": st.session_state["presence_penalty" + current_chat],
             "frequency_penalty": st.session_state["frequency_penalty" + current_chat],
-        }
+        }#将参数保存到paras中
         st.session_state["contexts"] = {
             "context_select": st.session_state["context_select" + current_chat],
             "context_input": st.session_state["context_input" + current_chat],
             "context_level": st.session_state["context_level" + current_chat],
-        }
+        }#将上下文保存到contexts中
         save_data(
             st.session_state["path"],
             new_chat_name,
             st.session_state["history" + current_chat],
             st.session_state["paras"],
             st.session_state["contexts"],
-        )
+        )#保存数据
 
-
+# 重命名文件
 def reset_chat_name_fun(chat_name):
-    chat_name = chat_name + "_" + str(uuid.uuid4())
-    new_name = filename_correction(chat_name)
-    current_chat_index = st.session_state["history_chats"].index(current_chat)
-    st.session_state["history_chats"][current_chat_index] = new_name
-    st.session_state["current_chat_index"] = current_chat_index
+    chat_name = chat_name + "_" + str(uuid.uuid4())#给聊天窗口命名
+    new_name = filename_correction(chat_name)#文件名纠正
+    current_chat_index = st.session_state["history_chats"].index(current_chat)#获取当前聊天索引
+    st.session_state["history_chats"][current_chat_index] = new_name#将新的聊天窗口名字赋值给当前聊天索引
+    st.session_state["current_chat_index"] = current_chat_index#将当前聊天索引赋值给当前聊天索引
     # 写入新文件
     write_data(new_name)
     # 转移数据
@@ -99,35 +99,35 @@ def reset_chat_name_fun(chat_name):
         "context_input",
         "context_level",
         *initial_content_all["paras"],
-    ]:
+    ]:#遍历参数
         st.session_state[item + new_name + "value"] = st.session_state[
             item + current_chat + "value"
         ]
-    remove_data(st.session_state["path"], current_chat)
+    remove_data(st.session_state["path"], current_chat)#删除当前聊天窗口
 
-
+# 创建新的聊天窗口
 def create_chat_fun():
     st.session_state["history_chats"] = [
         "New Chat_" + str(uuid.uuid4())
-    ] + st.session_state["history_chats"]
+    ] + st.session_state["history_chats"]#创建一个新的聊天窗口
     st.session_state["current_chat_index"] = 0
 
-
+# 删除聊天窗口
 def delete_chat_fun():
     if len(st.session_state["history_chats"]) == 1:
-        chat_init = "New Chat_" + str(uuid.uuid4())
-        st.session_state["history_chats"].append(chat_init)
-    pre_chat_index = st.session_state["history_chats"].index(current_chat)
+        chat_init = "New Chat_" + str(uuid.uuid4())#设置初始聊天窗口
+        st.session_state["history_chats"].append(chat_init)#将初始聊天窗口添加到聊天窗口列表中
+    pre_chat_index = st.session_state["history_chats"].index(current_chat)#获取当前聊天索引
     if pre_chat_index > 0:
         st.session_state["current_chat_index"] = (
             st.session_state["history_chats"].index(current_chat) - 1
-        )
+        )#将当前聊天索引赋值给当前聊天索引
     else:
         st.session_state["current_chat_index"] = 0
     st.session_state["history_chats"].remove(current_chat)
-    remove_data(st.session_state["path"], current_chat)
+    remove_data(st.session_state["path"], current_chat)#删除当前聊天窗口
 
-
+# 保存设置
 def save_set(arg):
     st.session_state[arg + "_value"] = st.session_state[arg]
     if "apikey" in st.secrets:
@@ -142,29 +142,29 @@ def save_set(arg):
             )#将设置保存到set.json文件中
 
 
-with st.sidebar:
+with st.sidebar:#侧边栏
     c1, c2 = st.columns(2)
     create_chat_button = c1.button(
         "新建", use_container_width=True, key="create_chat_button"
-    )
+    )#创建一个新建按钮
     if create_chat_button:
-        create_chat_fun()
-        st.experimental_rerun()
+        create_chat_fun()#调用创建新的聊天窗口函数
+        st.experimental_rerun()#重新渲染页面
 
     delete_chat_button = c2.button(
         "删除", use_container_width=True, key="delete_chat_button"
     )
     if delete_chat_button:
-        delete_chat_fun()
+        delete_chat_fun()#调用删除聊天窗口函数
         st.experimental_rerun()
 
-with st.sidebar:
+with st.sidebar:#侧边栏
     if ("set_chat_name" in st.session_state) and st.session_state[
         "set_chat_name"
-    ] != "":
-        reset_chat_name_fun(st.session_state["set_chat_name"])
-        st.session_state["set_chat_name"] = ""
-        st.experimental_rerun()
+    ] != "":#如果set_chat_name在ss中且不为空
+        reset_chat_name_fun(st.session_state["set_chat_name"])#调用重命名文件函数
+        st.session_state["set_chat_name"] = ""#将set_chat_name赋值为空
+        st.experimental_rerun()#重新渲染页面
 
     st.write("\n")
     st.write("\n")
@@ -172,7 +172,7 @@ with st.sidebar:
     st.selectbox(
         "选择模型：", index=0, options=["gpt-3.5-turbo-0125","gpt-3.5-turbo-1106","gpt-3.5-turbo", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k-0613",
                "gpt-4", "gpt-4-0613", "gpt-4-32k", "gpt-4-32k-0613", "gpt-3.5-turbo-1106"], key="select_model"
-    )
+    )#创建一个选择框，用于选择模型
     st.write("\n")
     st.caption(
         """
@@ -180,10 +180,10 @@ with st.sidebar:
     - Ctrl + Enter 快捷提交问题
     - 如果选择使用hand free模式，可以直接说话，停止说话后会自动提交
     """
-    )
+    )#创建一个标题，用于提示信息
     st.write("\n")
 
-    if "hand_free_toolkit_value" in st.session_state:
+    if "hand_free_toolkit_value" in st.session_state:#如果hand_free_toolkit_value在ss中，这个是用于判断是否开启自动语音输入。默认是false
         default = st.session_state["hand_free_toolkit_value"]
     else:
         default = False
@@ -193,56 +193,56 @@ with st.sidebar:
         key="hand_free_toolkit",
         on_change=save_set,
         args=("hand_free_toolkit",),
-    )
+    )#创建一个复选框，用于选择是否开启自动语音输入
 
 # 加载数据
 if "history" + current_chat not in st.session_state:
-    for key, value in load_data(st.session_state["path"], current_chat).items():
+    for key, value in load_data(st.session_state["path"], current_chat).items():#遍历加载数据
         if key == "history":
-            st.session_state[key + current_chat] = value
+            st.session_state[key + current_chat] = value#将value赋值给ss中的key+current_chat
         else:
             for k, v in value.items():
-                st.session_state[k + current_chat + "value"] = v
+                st.session_state[k + current_chat + "value"] = v#将v赋值给ss中的k+current_chat+value
 
 # 保证不同chat的页面层次一致，否则会导致自定义组件重新渲染
-container_show_messages = st.container()
+container_show_messages = st.container()#创建一个容器
 container_show_messages.write("")
 # 对话展示
 with container_show_messages:
-    if st.session_state["history" + current_chat]:
-        show_messages(current_chat, st.session_state["history" + current_chat])
+    if st.session_state["history" + current_chat]:#如果history+current_chat在ss中
+        show_messages(current_chat, st.session_state["history" + current_chat])#展示消息
 
 # 核查是否有对话需要删除
 if any(st.session_state["delete_dict"].values()):
-    for key, value in st.session_state["delete_dict"].items():
+    for key, value in st.session_state["delete_dict"].items():#遍历删除字典
         try:
             deleteCount = value.get("deleteCount")
         except AttributeError:
             deleteCount = None
-        if deleteCount == st.session_state["delete_count"]:
+        if deleteCount == st.session_state["delete_count"]:#如果deleteCount等于ss中的delete_count
             delete_keys = key
             st.session_state["delete_count"] = deleteCount + 1
             delete_current_chat, idr = delete_keys.split(">")
             df_history_tem = pd.DataFrame(
                 st.session_state["history" + delete_current_chat]
-            )
+            )#将ss中的history+delete_current_chat转换为DataFrame
             df_history_tem.drop(
                 index=df_history_tem.query("role=='user'").iloc[[int(idr)], :].index,
                 inplace=True,
-            )
+            )#删除用户
             df_history_tem.drop(
                 index=df_history_tem.query("role=='assistant'")
                 .iloc[[int(idr)], :]
                 .index,
                 inplace=True,
-            )
+            )#删除助手
             st.session_state["history" + delete_current_chat] = df_history_tem.to_dict(
                 "records"
-            )
-            write_data()
+            )#将df_history_tem转换为字典
+            write_data()#写入数据
             st.experimental_rerun()
 
-
+# 保存设置
 def callback_fun(arg):
     # 连续快速点击新建与删除会触发错误回调，增加判断
     if ("history" + current_chat in st.session_state) and (
@@ -253,12 +253,12 @@ def callback_fun(arg):
             arg + current_chat
         ]
 
-
+# 清空聊天记录
 def clear_button_callback():
     st.session_state["history" + current_chat] = []
     write_data()
 
-
+# 删除所有窗口
 def delete_all_chat_button_callback():
     if "apikey" in st.secrets:
         folder_path = st.session_state["path"]
@@ -285,13 +285,14 @@ st.write("\n")
 st.header("ChatGPT Assistant")
 tap_input, tap_context, tap_model, tab_func = st.tabs(
     ["💬 聊天", "🗒️ 预设", "⚙️ 模型", "🛠️ 功能"]
-)
+)#创建一个标签页
 
+# 预设窗口，包含上下文和模型参数
 with tap_context:
     set_context_list = list(set_context_all.keys())
     context_select_index = set_context_list.index(
         st.session_state["context_select" + current_chat + "value"]
-    )
+    )#获取上下文索引，这里st.session_state["context_select" + current_chat + "value"]是一个字符串,在set_context_list中找到这个字符串的索引
     st.selectbox(
         label="选择上下文",
         options=set_context_list,
@@ -299,8 +300,8 @@ with tap_context:
         index=context_select_index,
         on_change=callback_fun,
         args=("context_select",),
-    )
-    st.caption(set_context_all[st.session_state["context_select" + current_chat]])
+    )#创建一个选择框，用于选择上下文
+    st.caption(set_context_all[st.session_state["context_select" + current_chat]])#创建一个标题，用于展示上下文的内容
 
     st.text_area(
         label="补充或自定义上下文：",
@@ -308,8 +309,9 @@ with tap_context:
         value=st.session_state["context_input" + current_chat + "value"],
         on_change=callback_fun,
         args=("context_input",),
-    )
+    )#创建一个文本输入框，用于输入上下文
 
+# 模型参数
 with tap_model:
     st.markdown("OpenAI API Key (可选)")
     st.text_input(
@@ -317,7 +319,7 @@ with tap_model:
         type="password",
         key="apikey_input",
         label_visibility="collapsed",
-    )
+    )#创建一个文本输入框，用于输入OpenAI API Key
     st.caption(
         "此Key仅在当前网页有效，且优先级高于Secrets中的配置，仅自己可用，他人无法共享。[官网获取](https://platform.openai.com/account/api-keys)"
     )
@@ -333,7 +335,7 @@ with tap_model:
         key="context_level" + current_chat,
         args=("context_level",),
         help="表示每次会话中包含的历史对话次数，预设内容不计算在内。",
-    )
+    )#创建一个滑块，用于选择包含对话次数
 
     st.markdown("模型参数：")
     st.slider(
@@ -347,7 +349,7 @@ with tap_model:
         on_change=callback_fun,
         key="temperature" + current_chat,
         args=("temperature",),
-    )
+    )#创建一个滑块，用于选择温度
     st.slider(
         "Top P",
         0.1,
@@ -359,7 +361,7 @@ with tap_model:
         on_change=callback_fun,
         key="top_p" + current_chat,
         args=("top_p",),
-    )
+    )#创建一个滑块，用于选择top_p
     st.slider(
         "Presence Penalty",
         -2.0,
@@ -370,7 +372,7 @@ with tap_model:
         on_change=callback_fun,
         key="presence_penalty" + current_chat,
         args=("presence_penalty",),
-    )
+    )#创建一个滑块，用于选择presence_penalty
     st.slider(
         "Frequency Penalty",
         -2.0,
@@ -381,11 +383,12 @@ with tap_model:
         on_change=callback_fun,
         key="frequency_penalty" + current_chat,
         args=("frequency_penalty",),
-    )
+    )#创建一个滑块，用于选择frequency_penalty
     st.caption(
         "[官网参数说明](https://platform.openai.com/docs/api-reference/completions/create)"
     )
 
+# 功能组件
 with tab_func:
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -431,9 +434,10 @@ with tab_func:
             args=("open_voice_toolkit",),
         )
 
+# 输入框
 with tap_input:
 
-    def input_callback():
+    def input_callback():#输入回调
         if st.session_state["user_input_area"] != "":
             # 修改窗口名称
             user_input_content = st.session_state["user_input_area"]
@@ -442,7 +446,7 @@ with tap_input:
                 new_name = extract_chars(user_input_content, 18)
                 reset_chat_name_fun(new_name)
 
-    with st.form("input_form", clear_on_submit=True):
+    with st.form("input_form", clear_on_submit=True):#创建一个表单
         user_input = st.text_area(
             "**输入：**",
             key="user_input_area",
@@ -450,12 +454,12 @@ with tap_input:
             "\n- 代码块写在三个反引号内，并标注语言类型"
             "\n- 以英文冒号开头的内容或者正则表达式等写在单反引号内",
             value=st.session_state["user_voice_value"],
-        )
+        )#创建一个文本输入框，用于输入内容
         submitted = st.form_submit_button(
             "确认提交", use_container_width=True, on_click=input_callback
-        )
+        )#创建一个提交按钮
     if submitted:
-        st.session_state["user_input_content"] = user_input
+        st.session_state["user_input_content"] = user_input#将user_input赋值给ss中的user_input_content
         st.session_state["user_voice_value"] = ""
         st.experimental_rerun()
 
@@ -471,11 +475,11 @@ with tap_input:
         # voice_result会保存最后一次结果
         if (
             voice_result and voice_result["voice_result"]["flag"] == "interim"
-        ) or st.session_state["voice_flag"] == "interim":
+        ) or st.session_state["voice_flag"] == "interim":#如果voice_result不为空且voice_result的flag为interim
             st.session_state["voice_flag"] = "interim"
             st.session_state["user_voice_value"] = voice_result["voice_result"]["value"]
             print("user_voice_value:",st.session_state["user_voice_value"])
-            if voice_result["voice_result"]["flag"] == "final":
+            if voice_result["voice_result"]["flag"] == "final":#如果voice_result的flag为final
                 st.session_state["voice_flag"] = "final"
                 # 检查是否开启了hand free模式
                 if st.session_state["hand_free_toolkit_value"]:
@@ -487,17 +491,17 @@ with tap_input:
                 else:
                     st.experimental_rerun()  # 如果不在hand free模式下，仍然需要重新渲染以更新状态
 
-
+# 获取模型输入
 def get_model_input():
     # 需输入的历史记录
     context_level = st.session_state["context_level" + current_chat]
     history = get_history_input(
         st.session_state["history" + current_chat], context_level
-    ) + [{"role": "user", "content": st.session_state["pre_user_input_content"]}]
+    ) + [{"role": "user", "content": st.session_state["pre_user_input_content"]}]#获取历史记录
     for ctx in [
         st.session_state["context_input" + current_chat],
         set_context_all[st.session_state["context_select" + current_chat]],
-    ]:
+    ]:#遍历上下文
         if ctx != "":
             history = [{"role": "system", "content": ctx}] + history
     # 设定的模型参数
@@ -510,7 +514,7 @@ def get_model_input():
     return history, paras
 
 
-if st.session_state["user_input_content"] != "":
+if st.session_state["user_input_content"] != "":#如果user_input_content不为空,则认为用户已经输入
     if "r" in st.session_state:
         st.session_state.pop("r")
         st.session_state[current_chat + "report"] = ""
@@ -560,8 +564,8 @@ if st.session_state["user_input_content"] != "":
             st.session_state["r"] = r
             st.experimental_rerun()
 
-if ("r" in st.session_state) and (current_chat == st.session_state["chat_of_r"]):
-    if current_chat + "report" not in st.session_state:
+if ("r" in st.session_state) and (current_chat == st.session_state["chat_of_r"]):#如果r在ss中且当前聊天等于ss中的chat_of_r
+    if current_chat + "report" not in st.session_state:#如果current_chat+report不在ss中
         st.session_state[current_chat + "report"] = ""
     try:
         for e in st.session_state["r"]:
@@ -574,7 +578,7 @@ if ("r" in st.session_state) and (current_chat == st.session_state["chat_of_r"])
                     "user",
                     "tem",
                     [area_user_svg.markdown, area_user_content.markdown],
-                )
+                )#展示消息
                 show_each_message(
                     st.session_state[current_chat + "report"],
                     "assistant",
