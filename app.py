@@ -465,13 +465,18 @@ with tap_input:
 
     if (
         "open_voice_toolkit_value" not in st.session_state
-        or st.session_state["open_voice_toolkit_value"] or st.session_state["hand_free_toolkit_value"]
+        or st.session_state["open_voice_toolkit_value"] 
+        or "hand_free_toolkit_value" not in st.session_state
+        or st.session_state["hand_free_toolkit_value"]
     ):  # 如果没有被点击过或者被点击过且值为True
         # 语音输入功能
         # voice_result = voice_toolkit()
         # 调用自定义组件，并传递录音状态
-        print("hand_free_toolkit_value:",st.session_state["hand_free_toolkit_value"])
-        voice_result = voice_toolkit(is_recording=st.session_state["hand_free_toolkit_value"])
+        if "hand_free_toolkit_value" not in st.session_state:
+            voice_result = False
+        else:
+            print("hand_free_toolkit_value:",st.session_state["hand_free_toolkit_value"])
+            voice_result = voice_toolkit(is_recording=st.session_state["hand_free_toolkit_value"])
         # voice_result会保存最后一次结果
         if (
             voice_result and voice_result["voice_result"]["flag"] == "interim"
