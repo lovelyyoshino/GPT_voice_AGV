@@ -8,11 +8,15 @@ import openai
 from requests.models import ChunkedEncodingError
 from streamlit.components import v1
 from voice_toolkit import voice_toolkit
+import time
 
 if "apibase" in st.secrets:
     openai.api_base = st.secrets["apibase"]
 else:
+    os.environ["http_proxy"] = st.secrets["proxies"]
+    os.environ["https_proxy"] = st.secrets["proxies"]
     openai.api_base = "https://api.openai.com/v1"
+    # openai.proxy = {'http': st.secrets["proxies"], 'https': st.secrets["proxies"]}
 
 st.set_page_config(page_title="ChatGPT Assistant", layout="wide", page_icon="🤖")
 # 自定义元素样式
@@ -124,6 +128,20 @@ def delete_chat_fun():
     remove_data(st.session_state["path"], current_chat)
 
 
+def save_set(arg):
+    st.session_state[arg + "_value"] = st.session_state[arg]
+    if "apikey" in st.secrets:
+        with open("./set.json", "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "open_text_toolkit_value": st.session_state["open_text_toolkit"],
+                    "open_voice_toolkit_value": st.session_state["open_voice_toolkit"],
+                    "hand_free_toolkit_value": st.session_state["hand_free_toolkit"],
+                },
+                f,
+            )#将设置保存到set.json文件中
+
+
 with st.sidebar:
     c1, c2 = st.columns(2)
     create_chat_button = c1.button(
@@ -160,13 +178,21 @@ with st.sidebar:
         """
     - 双击页面直接定位输入栏
     - Ctrl + Enter 快捷提交问题
+    - 如果选择使用hand free模式，可以直接说话，停止说话后会自动提交
     """
     )
-    st.markdown(
-        '<a href="https://github.com/PierXuY/ChatGPT-Assistant" target="_blank" rel="ChatGPT-Assistant">'
-        '<img src="https://badgen.net/badge/icon/GitHub?icon=github&amp;label=ChatGPT Assistant" alt="GitHub">'
-        "</a>",
-        unsafe_allow_html=True,
+    st.write("\n")
+
+    if "hand_free_toolkit_value" in st.session_state:
+        default = st.session_state["hand_free_toolkit_value"]
+    else:
+        default = False
+    st.checkbox(
+        "开启自动语音输入(需要在比较安静的环境下使用)",
+        value=default,
+        key="hand_free_toolkit",
+        on_change=save_set,
+        args=("hand_free_toolkit",),
     )
 
 # 加载数据
@@ -244,18 +270,6 @@ def delete_all_chat_button_callback():
     st.session_state["current_chat_index"] = 0
     st.session_state["history_chats"] = ["New Chat_" + str(uuid.uuid4())]
 
-
-def save_set(arg):
-    st.session_state[arg + "_value"] = st.session_state[arg]
-    if "apikey" in st.secrets:
-        with open("./set.json", "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "open_text_toolkit_value": st.session_state["open_text_toolkit"],
-                    "open_voice_toolkit_value": st.session_state["open_voice_toolkit"],
-                },
-                f,
-            )
 
 
 # 输入内容展示
@@ -391,19 +405,19 @@ with tab_func:
 
     st.write("\n")
     st.markdown("自定义功能：")
-    c1, c2 = st.columns(2)
-    with c1:
+    c1, c2 = st.columns(2)#自定义功能，创建两个按钮
+    with c1:#第一个按钮默认为
         if "open_text_toolkit_value" in st.session_state:
-            default = st.session_state["open_text_toolkit_value"]
+            default = st.session_state["open_text_toolkit_value"]#如果open_text_toolkit_value在ss中
         else:
-            default = True
+            default = True#否则默认为True
         st.checkbox(
             "开启文本下的功能组件",
             value=default,
             key="open_text_toolkit",
             on_change=save_set,
             args=("open_text_toolkit",),
-        )
+        )#创建一个复选框，将值保存到ss中
     with c2:
         if "open_voice_toolkit_value" in st.session_state:
             default = st.session_state["open_voice_toolkit_value"]
@@ -447,19 +461,31 @@ with tap_input:
 
     if (
         "open_voice_toolkit_value" not in st.session_state
-        or st.session_state["open_voice_toolkit_value"]
-    ):
+        or st.session_state["open_voice_toolkit_value"] or st.session_state["hand_free_toolkit_value"]
+    ):  # 如果没有被点击过或者被点击过且值为True
         # 语音输入功能
-        vocie_result = voice_toolkit()
-        # vocie_result会保存最后一次结果
+        # voice_result = voice_toolkit()
+        # 调用自定义组件，并传递录音状态
+        print("hand_free_toolkit_value:",st.session_state["hand_free_toolkit_value"])
+        voice_result = voice_toolkit(is_recording=st.session_state["hand_free_toolkit_value"])
+        # voice_result会保存最后一次结果
         if (
-            vocie_result and vocie_result["voice_result"]["flag"] == "interim"
+            voice_result and voice_result["voice_result"]["flag"] == "interim"
         ) or st.session_state["voice_flag"] == "interim":
             st.session_state["voice_flag"] = "interim"
-            st.session_state["user_voice_value"] = vocie_result["voice_result"]["value"]
-            if vocie_result["voice_result"]["flag"] == "final":
+            st.session_state["user_voice_value"] = voice_result["voice_result"]["value"]
+            print("user_voice_value:",st.session_state["user_voice_value"])
+            if voice_result["voice_result"]["flag"] == "final":
                 st.session_state["voice_flag"] = "final"
-                st.experimental_rerun()
+                # 检查是否开启了hand free模式
+                if st.session_state["hand_free_toolkit_value"]:
+                    time.sleep(1)
+                    input_callback()  # 手动调用处理函数
+                    st.session_state["user_input_content"] = st.session_state["user_voice_value"]
+                    st.session_state["user_voice_value"] = ""  # 清除语音输入值
+                    st.experimental_rerun()  # 重新渲染页面
+                else:
+                    st.experimental_rerun()  # 如果不在hand free模式下，仍然需要重新渲染以更新状态
 
 
 def get_model_input():

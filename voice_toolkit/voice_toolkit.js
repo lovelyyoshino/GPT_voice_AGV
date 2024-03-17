@@ -29,6 +29,7 @@ window.speechSynthesis.onvoiceschanged = () => {
     window.parent.voices = voices
     let defaultLanguage;
     let browserLanguage = navigator.language;
+    let is_hand_free = false;
 
     // 参考自 https://chrome.google.com/webstore/detail/voice-control-for-chatgpt/eollffkcakegifhacjnlnegohfdlidhn
     const languageAll = [["普通话 (中国大陆)", "zh-CN"], ["中文 (中国台灣)", "zh-TW"], ["粵語 (中国香港)", "zh-HK"], ["English (US)", "en-US"], ["English (UK)", "en-GB"], ["English (IN)", "en-IN"], ["Afrikaans", "af-ZA"], ["Bahasa Indonesia", "id-ID"], ["Bahasa Melayu", "ms-MY"], ["Català", "ca-ES"], ["Čeština", "cs-CZ"], ["Dansk", "da-DK"], ["Deutsch", "de-DE"], ["Español (ES)", "es-ES"], ["Français", "fr-FR"], ["Galego", "gl-ES"], ["Hrvatski", "hr_HR"], ["IsiZulu", "zu-ZA"], ["Íslenska", "is-IS"], ["Italiano", "it-IT"], ["Magyar", "hu-HU"], ["Nederlands", "nl-NL"], ["Norsk bokmål", "nb-NO"], ["Polski", "pl-PL"], ["Português (PT)", "pt-PT"], ["Română", "ro-RO"], ["Slovenčina", "sk-SK"], ["Suomi", "fi-FI"], ["Svenska", "sv-SE"], ["Türkçe", "tr-TR"], ["български", "bg-BG"], ["日本語", "ja-JP"], ["한국어", "ko-KR"], ["Pусский", "ru-RU"], ["Српски", "sr-RS"]];
@@ -167,6 +168,22 @@ speedSelect.addEventListener("change", function () {
 })
 
 
+// 监听从Python发送过来的消息
+window.addEventListener("message", (event) => {
+    // console.log("开始语音识别...");
+    // 从 event.data 中解构出 args 对象
+    const { args } = event.data;
+    // 从 args 对象中解构出 is_recording 值
+    if (args && args.is_recording) {
+        is_hand_free = args.is_recording;
+        console.log(args.is_recording);
+        toggleRecording();
+    }else{
+        console.log("没有收到语音识别请求");
+        is_hand_free = false;
+    }
+  });
+
 function toggleRecording() {
     isRecording = !isRecording;
     recordBtn.classList.toggle('recording', isRecording);
@@ -195,6 +212,10 @@ recordBtn.addEventListener('click', toggleRecording);
 
 recognition.onresult = function (event) {
     let voiceTranscript = '';
+    if(is_hand_free==true){
+        console.log("自动语音识别")
+        voiceTranscriptFinal = '';
+    }
     let flag = 'interim'
     for (let i = event.resultIndex; i < event.results.length; i++) {
         let transcript = event.results[i][0].transcript;
@@ -214,6 +235,16 @@ recognition.onresult = function (event) {
         sendDataToPython({
             "value": {'voice_result': {'value': voiceTranscriptFinal, 'flag': flag}}
         })
+        // 语音识别结束后自动播放,需要先延迟一段时间，等待语音合成结束
+        setTimeout(function () {
+            if (window.parent.autoPlay) {
+                preResultElementCount = window.parent.document.querySelectorAll("div.content-div.assistant").length;
+                preHrElementCount = window.parent.document.querySelectorAll("section.main hr").length
+                CheckNewMessages()
+            }
+        }, 1000);
+        //在播放语音合成后，再次开启语音识别
+
     }
 }
 
@@ -277,16 +308,19 @@ function SayOutLoud(text) {
     }
     utterance.onstart = () => {
         clearTimeout(TIMEOUT_KEEP_SYNTHESIS_WORKING);
-        TIMEOUT_KEEP_SYNTHESIS_WORKING = setTimeout(KeepSpeechSynthesisActive, 5000);
+        TIMEOUT_KEEP_SYNTHESIS_WORKING = setTimeout(KeepSpeechSynthesisActive, 10000);
         // 播放时关闭录音
         if (recordBtn.classList.contains('recording')) {
             recordBtn.click()
         }
     };
+    // 播放结束时，清除定时器
     utterance.onend = () => {
-        clearTimeout(TIMEOUT_KEEP_SYNTHESIS_WORKING);
+        clearTimeout(TIMEOUT_KEEP_SYNTHESIS_WORKING);// 清除定时器
+        // console.log("语音播报完成")
+        toggleRecording();
     }
-    synth.speak(utterance);
+    synth.speak(utterance);// 开始播报
 }
 
 
@@ -378,9 +412,11 @@ function CheckNewMessages() {
 //// 监听主页事件
 // 监听主页提交按钮，触发监控
 function checkFormSubmit() {
+    // 查找Streamlit的提交按钮
     let stFormSubmit = window.parent.document.querySelector('button[kind="secondaryFormSubmit"]');
     if (stFormSubmit) {
         stFormSubmit.addEventListener('click', function () {
+            // 如果正在录音，则停止
             if (recordBtn.classList.contains('recording')) {
                 recordBtn.click()
             }
