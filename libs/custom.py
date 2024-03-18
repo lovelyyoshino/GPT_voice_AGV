@@ -23,13 +23,13 @@ initial_content_all = {
         "frequency_penalty": 0.0,
     },
     "contexts": {
-        'context_select': '不设置',
+        'context_select': '场景判断',
         'context_input': '',
         'context_level': 4
     }
 }
 # 上下文
-set_context_all = {"不设置": ""}
+set_context_all = {"场景判断": "你现在是一个通信调用协议架构师。我现在总共有13个接口，分别是: 1. 地图数据上传，2. 地图数据下载， 3. AMR地图列表查询接口， 4. AMR地图切换， 5. 站点数据批量上传，6. 站点数据批量下载， 7. 路线数据批量上传， 8. 路线数据批量下载，9. AMR动作查询接口，10.任务指令下发，11.任务状态查询，12. 任务取消接口，13. 获取AMR状态接口。这十三种数据接口，现在你要根据我的指令来挑选出需要使用的接口索引，并直接以对应阿拉伯数字作为结果，如果不符合则直接输出不符合即可："}
 set_context_all.update(set_context)# 从set_context.py中导入
 
 # 自定义css、js

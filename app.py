@@ -519,6 +519,30 @@ def get_model_input():
     return history, paras
 
 
+# 获取模型输入
+def get_twice_model_input(idx_content):
+    # 需输入的历史记录
+    context_level = st.session_state["context_level" + current_chat]
+    history = get_history_input(
+        st.session_state["history" + current_chat], context_level
+    ) + [{"role": "user", "content": st.session_state["pre_user_input_content"]}]#获取历史记录
+    for ctx in [
+        st.session_state["context_input" + current_chat],
+        set_context_all[idx_content],
+    ]:#遍历上下文
+        if ctx != "":
+            history = [{"role": "system", "content": ctx}] + history
+    # 设定的模型参数
+    paras = {
+        "temperature": st.session_state["temperature" + current_chat],
+        "top_p": st.session_state["top_p" + current_chat],
+        "presence_penalty": st.session_state["presence_penalty" + current_chat],
+        "frequency_penalty": st.session_state["frequency_penalty" + current_chat],
+    }
+    print("history",history)
+    return history, paras
+
+
 if st.session_state["user_input_content"] != "":#如果user_input_content不为空,则认为用户已经输入
     if "r" in st.session_state:
         st.session_state.pop("r")
@@ -545,12 +569,49 @@ if st.session_state["user_input_content"] != "":#如果user_input_content不为�
             # 注：当st.secrets中配置apikey后将会留存聊天记录，即使未使用此apikey
             else:
                 openai.api_key = st.secrets["apikey"]
-            r = openai.ChatCompletion.create(
-                model=st.session_state["select_model"],
-                messages=history_need_input,
-                stream=True,
-                **paras_need_input,
-            )
+
+            set_context_list = list(set_context_all.keys())
+            context_select_index = set_context_list.index(
+                        st.session_state["context_select" + current_chat + "value"])
+            print("context_select_index",context_select_index)
+            num =0
+            count = 0
+            if context_select_index == 0:# 代表是需要从头开始理解
+                while (num > 13 or num < 1) and count<3:
+                    r = openai.ChatCompletion.create(
+                        model=st.session_state["select_model"],
+                        messages=history_need_input,
+                        stream=True,
+                        **paras_need_input,
+                    )
+                    respone_msg = ""
+                    for e in r:
+                        if "content" in e["choices"][0]["delta"]:
+                            respone_msg += e["choices"][0]["delta"]["content"]
+                    print(respone_msg)
+                    #找到回复中的数字，范围为1-13
+                    num = re.findall(r"\d+", respone_msg)
+                    num = "1" ####################################################### 这里是为了防止测试卡死，后面会删掉
+                    #需要大于[]
+                    if len(num) > 0:
+                        num = int(num[0])
+                        if num > 0 and num < 14:
+                            index_contect = set_context_list[num]
+                            history_need_input, paras_need_input = get_twice_model_input(index_contect)
+                            break
+                    else:
+                        count += 1
+                        num = 0
+
+            if count>=3:
+                r = {"choices":[{"delta":{"content":"对不起，我理解不了您的问题，请换个问题试试"}}]}
+            else:
+                r = openai.ChatCompletion.create(
+                    model=st.session_state["select_model"],
+                    messages=history_need_input,
+                    stream=True,
+                    **paras_need_input,
+                )
         except (FileNotFoundError, KeyError):
             area_error.error(
                 "缺失 OpenAI API Key，请在复制项目后配置Secrets，或者在模型选项中进行临时配置。"
@@ -578,18 +639,23 @@ if ("r" in st.session_state) and (current_chat == st.session_state["chat_of_r"])
                 st.session_state[current_chat + "report"] += e["choices"][0]["delta"][
                     "content"
                 ]
-                show_each_message(
-                    st.session_state["pre_user_input_content"],
-                    "user",
-                    "tem",
-                    [area_user_svg.markdown, area_user_content.markdown],
-                )#展示消息
-                show_each_message(
-                    st.session_state[current_chat + "report"],
-                    "assistant",
-                    "tem",
-                    [area_gpt_svg.markdown, area_gpt_content.markdown],
-                )
+        # 调用函数完成调用，然后解析信息。并将结果信息累加到输出数据中，用于语音展示
+        #respone = update_map_date(map_name)
+        # st.session_state[current_chat + "report"]+=XXXXXXXXXX
+
+        # 这里向前提是希望拿到处理结果然后将返回值传递给前端
+        show_each_message(
+            st.session_state["pre_user_input_content"],
+            "user",
+            "tem",
+            [area_user_svg.markdown, area_user_content.markdown],
+        )#展示消息
+        show_each_message(
+            st.session_state[current_chat + "report"],
+            "assistant",
+            "tem",
+            [area_gpt_svg.markdown, area_gpt_content.markdown],
+        )
     except ChunkedEncodingError:
         area_error.error("网络状况不佳，请刷新页面重试。")
     # 应对stop情形
