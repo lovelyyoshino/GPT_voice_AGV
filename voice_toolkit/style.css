@@ -71,6 +71,7 @@ body {
     background-color: transparent;
     color: black;
     box-shadow: inset 0 0 1.25rem red;
+    
 }
 
 #record-btn.recording i {
@@ -108,7 +109,8 @@ select:hover {
 }
 
 
-#language-select, #voice-select {
+#language-select,
+#voice-select {
     display: inline-flex;
     justify-content: left;
     text-size-adjust: 100%;
