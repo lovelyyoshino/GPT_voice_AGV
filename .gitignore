@@ -172,7 +172,7 @@ history_chats_file
 *.ipynb
 google_credentials.json
 firebase_credentials.json
-
+chromaDB
 ./node_modules
 
 # scripts
