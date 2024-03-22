@@ -15,6 +15,7 @@ if "apibase" in st.secrets:
 else:
     os.environ["http_proxy"] = st.secrets["proxies"]
     os.environ["https_proxy"] = st.secrets["proxies"]
+    openai.proxy = {"http": st.secrets["proxies"], "https": st.secrets["proxies"]}
     openai.api_base = "https://api.openai.com/v1"
     # openai.proxy = {'http': st.secrets["proxies"], 'https': st.secrets["proxies"]}
 
@@ -150,14 +151,14 @@ with st.sidebar:#侧边栏
     )#创建一个新建按钮
     if create_chat_button:
         create_chat_fun()#调用创建新的聊天窗口函数
-        st.experimental_rerun()#重新渲染页面
+        st.rerun()#重新渲染页面
 
     delete_chat_button = c2.button(
         "删除", use_container_width=True, key="delete_chat_button"
     )
     if delete_chat_button:
         delete_chat_fun()#调用删除聊天窗口函数
-        st.experimental_rerun()
+        st.rerun()
 
 with st.sidebar:#侧边栏
     if ("set_chat_name" in st.session_state) and st.session_state[
@@ -165,7 +166,7 @@ with st.sidebar:#侧边栏
     ] != "":#如果set_chat_name在ss中且不为空
         reset_chat_name_fun(st.session_state["set_chat_name"])#调用重命名文件函数
         st.session_state["set_chat_name"] = ""#将set_chat_name赋值为空
-        st.experimental_rerun()#重新渲染页面
+        st.rerun()#重新渲染页面
 
     st.write("\n")
     st.write("\n")
@@ -183,6 +184,19 @@ with st.sidebar:#侧边栏
     """
     )#创建一个标题，用于提示信息
     st.write("\n")
+    if "apikey_input" in st.secrets:
+        dbapi_key = st.session_state["apikey_input"]
+    # 配置临时apikey，此时不会留存聊天记录，适合公开使用
+    elif "apikey_tem" in st.secrets:
+        dbapi_key = st.secrets["apikey_tem"]
+    # 注：当st.secrets中配置apikey后将会留存聊天记录，即使未使用此apikey
+    else:
+        dbapi_key = st.secrets["apikey"]
+    #支持上传pdf,doc,docx,txt,md文件
+    all_files = st.file_uploader("上传文件", type=["pdf", "doc", "docx", "txt", "md"], accept_multiple_files=True)
+    
+    if all_files is not None:  # Process PDF files if uploaded
+        multiple_pdfFiles_to_text(all_files,dbapi_key)
 
     if "hand_free_toolkit_value" in st.session_state:#如果hand_free_toolkit_value在ss中，这个是用于判断是否开启自动语音输入。默认是false
         default = st.session_state["hand_free_toolkit_value"]
@@ -241,7 +255,7 @@ if any(st.session_state["delete_dict"].values()):
                 "records"
             )#将df_history_tem转换为字典
             write_data()#写入数据
-            st.experimental_rerun()
+            st.rerun()
 
 # 保存设置
 def callback_fun(arg):
@@ -462,7 +476,7 @@ with tap_input:
     if submitted:
         st.session_state["user_input_content"] = user_input#将user_input赋值给ss中的user_input_content
         st.session_state["user_voice_value"] = ""
-        st.experimental_rerun()
+        st.rerun()
 
     if (
         "open_voice_toolkit_value" not in st.session_state
@@ -493,9 +507,9 @@ with tap_input:
                     input_callback()  # 手动调用处理函数
                     st.session_state["user_input_content"] = st.session_state["user_voice_value"]
                     st.session_state["user_voice_value"] = ""  # 清除语音输入值
-                    st.experimental_rerun()  # 重新渲染页面
+                    st.rerun()  # 重新渲染页面
                 else:
-                    st.experimental_rerun()  # 如果不在hand free模式下，仍然需要重新渲染以更新状态
+                    st.rerun()  # 如果不在hand free模式下，仍然需要重新渲染以更新状态
 
 # 获取模型输入
 def get_model_input():
@@ -595,13 +609,31 @@ if st.session_state["user_input_content"] != "":#如果user_input_content不为�
                             index_contect = set_context_list[num]
                             history_need_input, paras_need_input = get_twice_model_input(index_contect)
                             break
+                    else:
+                        num = 0
+            # print("context_select_index:",context_select_index)
+            if context_select_index > 13:#这个代表不在指令集里面，需要借助chromaDB回答问题
+                if apikey := st.session_state["apikey_input"]:
+                    dbapi_key = apikey
+                # 配置临时apikey，此时不会留存聊天记录，适合公开使用
+                elif "apikey_tem" in st.secrets:
+                    dbapi_key = st.secrets["apikey_tem"]
+                # 注：当st.secrets中配置apikey后将会留存聊天记录，即使未使用此apikey
+                else:
+                    dbapi_key = st.secrets["apikey"]
 
-            r = openai.ChatCompletion.create(
-                model=st.session_state["select_model"],
-                messages=history_need_input,
-                stream=True,
-                **paras_need_input,
-            )
+                # print("api_key:",dbapi_key,st.session_state["pre_user_input_content"],history_need_input,paras_need_input)
+                res = user_query_response(st.session_state["pre_user_input_content"],history_need_input,dbapi_key,st.session_state["select_model"],set_context_all[st.session_state["context_select" + current_chat]])
+                # transform the response to the format of GPT
+                r = []
+                r.append({"choices": [{"delta": {"content": res}}]})
+            else:
+                r = openai.ChatCompletion.create(
+                    model=st.session_state["select_model"],
+                    messages=history_need_input,
+                    stream=True,
+                    **paras_need_input,
+                )
         except (FileNotFoundError, KeyError):
             area_error.error(
                 "缺失 OpenAI API Key，请在复制项目后配置Secrets，或者在模型选项中进行临时配置。"
@@ -618,7 +650,7 @@ if st.session_state["user_input_content"] != "":#如果user_input_content不为�
         else:
             st.session_state["chat_of_r"] = current_chat
             st.session_state["r"] = r
-            st.experimental_rerun()
+            st.rerun()
 
 if ("r" in st.session_state) and (current_chat == st.session_state["chat_of_r"]):#如果r在ss中且当前聊天等于ss中的chat_of_r
     if current_chat + "report" not in st.session_state:#如果current_chat+report不在ss中
@@ -660,7 +692,7 @@ if ("r" in st.session_state) and (current_chat == st.session_state["chat_of_r"])
         st.session_state.pop(current_chat + "report")
     if "r" in st.session_state:
         st.session_state.pop("r")
-        st.experimental_rerun()
+        st.rerun()
 
 # 添加事件监听
 v1.html(js_code, height=0)

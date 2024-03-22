@@ -28,6 +28,14 @@ set_context = {
         "",
     "获取AMR状态接口":
         "",
+    "根据你的知识库回答问题":
+        """
+        Answer  the question using only the details provided in the context.If the necessary information is not available, 
+        simply state "answer is not available in the context" instead of providing incorrect information.
+        
+        Context:\n {context}?\n
+        Question: \n{question}\n
+        """,
 }
 
 

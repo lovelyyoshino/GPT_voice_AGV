@@ -8,7 +8,17 @@ from .custom import *
 import copy
 import io
 from text_toolkit import text_toolkit
-
+from PyPDF2 import PdfReader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.embeddings.openai import OpenAIEmbeddings
+from langchain.vectorstores.chroma import Chroma
+from langchain.chains.question_answering import load_qa_chain
+from langchain_community.llms import OpenAI
+from langchain.prompts import PromptTemplate, prompt
+from langchain_community.chat_models import ChatOpenAI
+from langchain.schema import Document
+import docx2txt
+from bs4 import BeautifulSoup
 
 def get_history_chats(path: str) -> list:
     if "apikey" in st.secrets:
@@ -158,6 +168,85 @@ def url_correction(text: str) -> str:
     pattern = r'((?:http[s]?://|www\.)(?:[a-zA-Z0-9]|[$-_\~#!])+)'
     text = re.sub(pattern, r' \g<1> ', text)
     return text
+
+
+# Function to extract text from a PDF file
+def pdf_to_text(pdf): 
+    pdf_reader=PdfReader(pdf)
+    text=''
+    for page in pdf_reader.pages:
+        text+=page.extract_text()
+    return text 
+
+def doc_to_text(doc):
+    text = docx2txt.process(doc)
+    return text
+
+def md_to_text(md):
+    with open(md, 'r', encoding='utf-8') as f:
+        text=f.read()
+    return text
+
+def html_to_plaintext_doc(html_text, url: str) -> Document:
+    soup = BeautifulSoup(html_text, features="lxml")
+    for script in soup(["script", "style"]):
+        script.extract()
+
+    strings = '\n'.join([s.strip() for s in soup.stripped_strings])
+    webpage_document = Document(page_content=strings, metadata={"source": url})
+    return webpage_document
+
+# Function to split text into chunks
+def text_split_into_chunks(text):
+    text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=300,
+            chunk_overlap=100,
+            length_function=len,
+            add_start_index=True)
+    chunks=text_splitter.split_text(text)
+    return chunks
+
+# Function to save text chunks to Chroma DB
+def save_to_chromadb(chunks,openai_api_key,CHROMA_PATH):
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-large",openai_api_key=openai_api_key)
+    db = Chroma.from_texts(chunks, embeddings,persist_directory=CHROMA_PATH)
+    db.persist()
+
+
+# Function to process multiple PDF files into text and save them into Chroma DB
+def multiple_pdfFiles_to_text(pdf_files,openai_api_key,CHROMA_PATH="chromaDB"):
+    for pdf in pdf_files:
+        if pdf.endswith('.pdf'):
+            text=pdf_to_text(pdf)
+        elif pdf.endswith('.txt'):
+            with open(pdf, 'r', encoding='utf-8') as f:
+                text=f.read()
+        elif pdf.endswith('.docx'):
+            text=doc_to_text(pdf)
+        elif pdf.endswith('.doc'):
+            text=doc_to_text(pdf)
+        elif pdf.endswith('.md'):
+            text=md_to_text(pdf)
+        chunks=text_split_into_chunks(text)
+        save_to_chromadb(chunks,openai_api_key,CHROMA_PATH)
+
+# Function to retrieve the question-answering chain
+def getting_chain(openai_api_key, model,prompt_template):
+    prompt_template = prompt_template
+    prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])  
+    llm = ChatOpenAI(model=model,api_key=openai_api_key)
+    chain = load_qa_chain(llm, chain_type="stuff",prompt=prompt)
+    return chain
+
+# Function to provide response to user's question
+def user_query_response(question,pre_chat,openai_api_key,model,prompt_template,CHROMA_PATH="chromaDB"):
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-large",openai_api_key=openai_api_key)
+    db=Chroma(persist_directory=CHROMA_PATH, embedding_function=embeddings)
+    docs = db.similarity_search(question)
+    # print(docs)
+    chain=getting_chain(openai_api_key, model,prompt_template)
+    response = chain.run(input_documents=docs, question=question)
+    return response
 
 # st的markdown会错误渲染英文引号加英文字符，例如 :abc
 # def colon_correction(text):
