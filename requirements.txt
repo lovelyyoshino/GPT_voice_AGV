@@ -9,3 +9,4 @@ chromadb==0.4.24
 langchain-community==0.0.28
 docx2txt==0.8
 langchain-openai==0.0.8
+beautifulsoup4==4.12.2

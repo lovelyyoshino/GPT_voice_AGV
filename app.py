@@ -13,11 +13,13 @@ import time
 if "apibase" in st.secrets:
     openai.api_base = st.secrets["apibase"]
 else:
-    os.environ["http_proxy"] = st.secrets["proxies"]
-    os.environ["https_proxy"] = st.secrets["proxies"]
-    openai.proxy = {"http": st.secrets["proxies"], "https": st.secrets["proxies"]}
-    openai.api_base = "https://api.openai.com/v1"
-    # openai.proxy = {'http': st.secrets["proxies"], 'https': st.secrets["proxies"]}
+    if "proxies" in st.secrets:
+        os.environ["http_proxy"] = st.secrets["proxies"]
+        os.environ["https_proxy"] = st.secrets["proxies"]
+        openai.proxy = {"http": st.secrets["proxies"], "https": st.secrets["proxies"]}
+        openai.api_base = "https://api.openai.com/v1"
+    else:
+        RuntimeError("请配置proxies")
 
 st.set_page_config(page_title="ChatGPT Assistant", layout="wide", page_icon="🤖")
 # 自定义元素样式

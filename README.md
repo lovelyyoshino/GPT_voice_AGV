@@ -7,6 +7,9 @@
 - 模型参数调节
 - 对话导出为Markdown文件
 - ChatGPT语音交流（推荐电脑端Edge浏览器）
+- hand-free无需手动交流
+- 支持多次循环访问
+- 支持RAG模型来实现本地数据库
 
 ### 使用技巧：
 - 双击页面可直接定位输入栏
@@ -26,14 +29,12 @@
 
 ![step2.png](pic/step2.png)
 
-#### 3. 注册Streamlit后准备部署
+#### 3. 注册[Streamlit](https://share.streamlit.io/)后准备部署
 
 ---
 
 ![step3.png](pic/step3.png)
 ---
-
-![step4.png](pic/step4.png)
 
 #### 4. 粘贴app.py链接地址，开始部署
 
@@ -46,6 +47,19 @@
 ---
 
 ![step7.png](pic/step7.png)
+
+
+
+## Streamlit Cloud部署（推荐）
+
+1. `Fork`本项目到个人Github仓库。
+2. 注册[Streamlit Cloud账号](https://share.streamlit.io/)，并连接到Github。
+3. 开始部署应用，具体可参考[官方教程](https://docs.streamlit.io/streamlit-community-cloud/get-started)。
+4. 在应用的Secrets中配置Openai Key以及proxies/apibase（两个必须有其中一个），具体格式参考下图：
+
+![](pic/advanced_setting.png)
+
+![](pic/hf_secrets.png)
 
 
 
