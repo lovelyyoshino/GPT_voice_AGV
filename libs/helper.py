@@ -10,12 +10,12 @@ import io
 from text_toolkit import text_toolkit
 from PyPDF2 import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.embeddings.openai import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain.vectorstores.chroma import Chroma
 from langchain.chains.question_answering import load_qa_chain
 from langchain_community.llms import OpenAI
 from langchain.prompts import PromptTemplate, prompt
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.schema import Document
 import docx2txt
 from bs4 import BeautifulSoup
@@ -214,19 +214,20 @@ def save_to_chromadb(chunks,openai_api_key,CHROMA_PATH):
 
 
 # Function to process multiple PDF files into text and save them into Chroma DB
-def multiple_pdfFiles_to_text(pdf_files,openai_api_key,CHROMA_PATH="chromaDB"):
-    for pdf in pdf_files:
-        if pdf.endswith('.pdf'):
-            text=pdf_to_text(pdf)
-        elif pdf.endswith('.txt'):
-            with open(pdf, 'r', encoding='utf-8') as f:
+def multiple_Files_to_text(uploaded_files,openai_api_key,CHROMA_PATH="chromaDB"):
+    for uploaded_file in uploaded_files:
+        file_name = uploaded_file.name
+        if file_name.endswith('.pdf'):
+            text=pdf_to_text(uploaded_file)
+        elif file_name.endswith('.txt'):
+            with open(file_name, 'r', encoding='utf-8') as f:
                 text=f.read()
-        elif pdf.endswith('.docx'):
-            text=doc_to_text(pdf)
-        elif pdf.endswith('.doc'):
-            text=doc_to_text(pdf)
-        elif pdf.endswith('.md'):
-            text=md_to_text(pdf)
+        elif file_name.endswith('.docx'):
+            text=doc_to_text(uploaded_file)
+        elif file_name.endswith('.doc'):
+            text=doc_to_text(uploaded_file)
+        elif file_name.endswith('.md'):
+            text=md_to_text(uploaded_file)
         chunks=text_split_into_chunks(text)
         save_to_chromadb(chunks,openai_api_key,CHROMA_PATH)
 

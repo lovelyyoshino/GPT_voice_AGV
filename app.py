@@ -196,7 +196,7 @@ with st.sidebar:#侧边栏
     all_files = st.file_uploader("上传文件", type=["pdf", "doc", "docx", "txt", "md"], accept_multiple_files=True)
     
     if all_files is not None:  # Process PDF files if uploaded
-        multiple_pdfFiles_to_text(all_files,dbapi_key)
+        multiple_Files_to_text(all_files,dbapi_key)
 
     if "hand_free_toolkit_value" in st.session_state:#如果hand_free_toolkit_value在ss中，这个是用于判断是否开启自动语音输入。默认是false
         default = st.session_state["hand_free_toolkit_value"]
