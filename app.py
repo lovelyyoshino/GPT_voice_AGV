@@ -589,8 +589,9 @@ if st.session_state["user_input_content"] != "":#如果user_input_content不为�
                         st.session_state["context_select" + current_chat + "value"])
             
             num =0
+            count = 0
             if context_select_index == 0:# 代表是需要从头开始理解
-                while num > 13 or num < 1:
+                while (num > 13 or num < 1) and count<3:
                     r = openai.ChatCompletion.create(
                         model=st.session_state["select_model"],
                         messages=history_need_input,
@@ -603,6 +604,8 @@ if st.session_state["user_input_content"] != "":#如果user_input_content不为�
                             respone_msg += e["choices"][0]["delta"]["content"]
                     #找到回复中的数字，范围为1-13
                     num = re.findall(r"\d+", respone_msg)
+                    num = "1" ####################################################### 这里是为了防止测试卡死，后面会删掉
+                    #需要大于[]
                     if len(num) > 0:
                         num = int(num[0])
                         if num > 0 and num < 14:
@@ -610,6 +613,7 @@ if st.session_state["user_input_content"] != "":#如果user_input_content不为�
                             history_need_input, paras_need_input = get_twice_model_input(index_contect)
                             break
                     else:
+                        count += 1
                         num = 0
             # print("context_select_index:",context_select_index)
             if context_select_index > 13:#这个代表不在指令集里面，需要借助chromaDB回答问题
@@ -628,12 +632,15 @@ if st.session_state["user_input_content"] != "":#如果user_input_content不为�
                 r = []
                 r.append({"choices": [{"delta": {"content": res}}]})
             else:
-                r = openai.ChatCompletion.create(
-                    model=st.session_state["select_model"],
-                    messages=history_need_input,
-                    stream=True,
-                    **paras_need_input,
-                )
+                if count>=3:
+                    r = {"choices":[{"delta":{"content":"对不起，我理解不了您的问题，请换个问题试试"}}]}
+                else:
+                    r = openai.ChatCompletion.create(
+                        model=st.session_state["select_model"],
+                        messages=history_need_input,
+                        stream=True,
+                        **paras_need_input,
+                    )
         except (FileNotFoundError, KeyError):
             area_error.error(
                 "缺失 OpenAI API Key，请在复制项目后配置Secrets，或者在模型选项中进行临时配置。"
@@ -661,6 +668,11 @@ if ("r" in st.session_state) and (current_chat == st.session_state["chat_of_r"])
                 st.session_state[current_chat + "report"] += e["choices"][0]["delta"][
                     "content"
                 ]
+                # 调用函数完成调用，然后解析信息。并将结果信息累加到输出数据中，用于语音展示
+                #respone = update_map_date(map_name)
+                # st.session_state[current_chat + "report"]+=XXXXXXXXXX
+
+                # 这里向前提是希望拿到处理结果然后将返回值传递给前端
                 show_each_message(
                     st.session_state["pre_user_input_content"],
                     "user",
