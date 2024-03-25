@@ -10,12 +10,12 @@ import io
 from text_toolkit import text_toolkit
 from PyPDF2 import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+from langchain_community.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores.chroma import Chroma
 from langchain.chains.question_answering import load_qa_chain
 from langchain_community.llms import OpenAI
 from langchain.prompts import PromptTemplate, prompt
-from langchain_openai import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.schema import Document
 import docx2txt
 from bs4 import BeautifulSoup
