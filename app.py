@@ -590,9 +590,9 @@ if st.session_state["user_input_content"] != "":#如果user_input_content不为�
             context_select_index = set_context_list.index(
                         st.session_state["context_select" + current_chat + "value"])
             
-            num =0
-            count = 0
-            if context_select_index == 0:# 代表是需要从头开始理解
+            num =0 #指令数字
+            count = 0 # 计数器，最多调api三次
+            if context_select_index == 0:# 代表是需要从头开始理解（场景理解）
                 while (num > 13 or num < 1) and count<3:
                     r = openai.ChatCompletion.create(
                         model=st.session_state["select_model"],
@@ -606,7 +606,7 @@ if st.session_state["user_input_content"] != "":#如果user_input_content不为�
                             respone_msg += e["choices"][0]["delta"]["content"]
                     #找到回复中的数字，范围为1-13
                     num = re.findall(r"\d+", respone_msg)
-                    num = "1" ####################################################### 这里是为了防止测试卡死，后面会删掉
+                    #num = "1" ####################################################### 这里是为了防止测试卡死，后面会删掉
                     #需要大于[]
                     if len(num) > 0:
                         num = int(num[0])

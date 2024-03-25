@@ -94,3 +94,4 @@ streamlit run app.py
 - 在custom.py文件中可自定义用户名和SVG格式头像[(来源)](https://www.dicebear.com/playground?style=identicon)。
 - 在部署的项目源码中编辑set_context.py，即可增加预设定的上下文选项，会自动同步到应用中。
 - 有条件的可以考虑把helper.py中的文件读写逻辑改为云数据库操作，防止历史记录丢失。
+- `pip install urllib3==1.25.11`解决0.28版本opanai`APIConnectionError` [https://zhuanlan.zhihu.com/p/613833600](https://zhuanlan.zhihu.com/p/613833600)
