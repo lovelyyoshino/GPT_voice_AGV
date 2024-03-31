@@ -177,12 +177,61 @@ window.addEventListener("message", (event) => {
     if (args && args.is_recording) {
         is_hand_free = args.is_recording;
         console.log(args.is_recording);
-        toggleRecording();
+        toggleRecording_whisper();//修改为toggleRecording_whisper
     }else{
         console.log("没有收到语音识别请求");
         is_hand_free = false;
     }
   });
+
+let mediaRecorder;
+let audioChunks = [];
+const ws = new WebSocket('ws://localhost:8765'); // 假设 WebSocket 服务器运行在这个地址
+
+function toggleRecording_whisper() {
+    isRecording = !isRecording;
+    recordBtn.classList.toggle('recording', isRecording);
+
+    if (isRecording) {
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.start();
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        ws.send(reader.result);
+                    };
+                    reader.readAsArrayBuffer(audioBlob);
+                    audioChunks = [];
+                };
+            });
+    } else {
+        mediaRecorder.stop();
+    }
+}
+
+// 接收从服务器返回的识别结果
+ws.onmessage = function(event) {
+    const result = JSON.parse(event.data);
+    console.log('Recognition result:', result.text);
+    // 处理返回的识别结果
+};
+
+// 确保录音结束时能够重新开始
+ws.onclose = function() {
+    if (isRecording) {
+        toggleRecording_whisper(); // 停止当前录音
+        toggleRecording_whisper(); // 重新开始录音
+    }
+};
+
 
 function toggleRecording() {
     isRecording = !isRecording;
@@ -208,7 +257,7 @@ function toggleRecording() {
     }
 }
 
-recordBtn.addEventListener('click', toggleRecording);
+recordBtn.addEventListener('click', toggleRecording_whisper);//修改为toggleRecording_whisper
 
 recognition.onresult = function (event) {
     let voiceTranscript = '';
