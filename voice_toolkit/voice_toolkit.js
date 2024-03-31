@@ -3,6 +3,7 @@ function sendMessageToStreamlitClient(type, data) {
     const outData = Object.assign({
         isStreamlitMessage: true, type: type,
     }, data);
+    console.log("outdata:",outData)
     window.parent.postMessage(outData, "*");
 }
 
@@ -192,10 +193,10 @@ function toggleRecording_whisper() {
     isRecording = !isRecording;
     recordBtn.classList.toggle('recording', isRecording);
 
-    if (isRecording) {
+    if (recordBtn.classList.contains('recording')) {
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(stream => {
-                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' }); // 明确指定 mimeType 为 webm
                 mediaRecorder.start();
 
                 mediaRecorder.ondataavailable = event => {
@@ -203,30 +204,58 @@ function toggleRecording_whisper() {
                 };
 
                 mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); // 确保Blob类型为webm
                     const reader = new FileReader();
                     reader.onload = () => {
-                        ws.send(reader.result);
+                        ws.send(reader.result); // 发送音频数据到服务器
                     };
                     reader.readAsArrayBuffer(audioBlob);
                     audioChunks = [];
                 };
+            }).catch(error => {
+                console.error("Error accessing media devices.", error);
             });
     } else {
-        mediaRecorder.stop();
+        if (mediaRecorder) {
+            mediaRecorder.stop();
+        }
     }
 }
 
 // 接收从服务器返回的识别结果
 ws.onmessage = function(event) {
-    const result = JSON.parse(event.data);
-    console.log('Recognition result:', result.text);
+    let voiceTranscript = '';
+    if(is_hand_free==true){
+        console.log("自动语音识别")
+        voiceTranscriptFinal = '';
+    }
+    let flag = 'final'
+    voiceTranscript = JSON.parse(event.data);
+    console.log('Recognition result:', voiceTranscript.data);
+    if (flag === 'interim') {
+        sendDataToPython({
+            "value": {'voice_result': {'value': voiceTranscript.data, 'flag': flag}}
+        })
+    } else {
+        sendDataToPython({
+            "value": {'voice_result': {'value': voiceTranscript.data, 'flag': flag}}
+        })
+        // 语音识别结束后自动播放,需要先延迟一段时间，等待语音合成结束
+        setTimeout(function () {
+            if (window.parent.autoPlay) {
+                preResultElementCount = window.parent.document.querySelectorAll("div.content-div.assistant").length;
+                preHrElementCount = window.parent.document.querySelectorAll("section.main hr").length
+                CheckNewMessages()
+            }
+        }, 1000);
+        //在播放语音合成后，再次开启语音识别
+    }
     // 处理返回的识别结果
 };
 
 // 确保录音结束时能够重新开始
 ws.onclose = function() {
-    if (isRecording) {
+    if (recordBtn.classList.contains('recording')) {
         toggleRecording_whisper(); // 停止当前录音
         toggleRecording_whisper(); // 重新开始录音
     }
