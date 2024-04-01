@@ -178,7 +178,7 @@ window.addEventListener("message", (event) => {
     if (args && args.is_recording) {
         is_hand_free = args.is_recording;
         console.log(args.is_recording);
-        toggleRecording_whisper();//修改为toggleRecording_whisper
+        toggleRecording();//修改为toggleRecording_whisper
     }else{
         console.log("没有收到语音识别请求");
         is_hand_free = false;
@@ -188,40 +188,58 @@ window.addEventListener("message", (event) => {
 let mediaRecorder;
 let audioChunks = [];
 const ws = new WebSocket('ws://localhost:8765'); // 假设 WebSocket 服务器运行在这个地址
+let silenceTimer = null;
+const silenceDelay = 3000; // 3秒静默
+let isSendingData = false; // 新增标志，控制数据发送
 
 function toggleRecording_whisper() {
     isRecording = !isRecording;
     recordBtn.classList.toggle('recording', isRecording);
 
-    if (recordBtn.classList.contains('recording')) {
+    if (isRecording) {
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(stream => {
-                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' }); // 明确指定 mimeType 为 webm
-                mediaRecorder.start();
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                audioChunks = []; // 重置音频片段数组
 
                 mediaRecorder.ondataavailable = event => {
-                    audioChunks.push(event.data);
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                        resetSilenceTimer(); // 检测到音频数据时，重置静默计时器
+                    }
                 };
 
-                mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); // 确保Blob类型为webm
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        ws.send(reader.result); // 发送音频数据到服务器
-                    };
-                    reader.readAsArrayBuffer(audioBlob);
-                    audioChunks = [];
-                };
-            }).catch(error => {
+                mediaRecorder.start(1000); // 设置MediaRecorder的timeslice，每1000ms生成一次数据
+            })
+            .catch(error => {
                 console.error("Error accessing media devices.", error);
             });
     } else {
+        // 停止录音
         if (mediaRecorder) {
             mediaRecorder.stop();
+            clearTimeout(silenceTimer); // 停止录音时清除静默计时器
+            sendAudioData(); // 确保在停止录音时发送剩余的音频数据
         }
     }
 }
 
+function resetSilenceTimer() {
+    clearTimeout(silenceTimer);
+    silenceTimer = setTimeout(sendAudioData, silenceDelay); // 设置在静默后发送数据的计时器
+}
+
+function sendAudioData() {
+    if (audioChunks.length > 0 && ws.readyState === WebSocket.OPEN) {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        ws.send(audioBlob);
+        audioChunks = []; // 发送数据后清空数组
+    } else if (ws.readyState !== WebSocket.OPEN) {
+        console.error('WebSocket is not open. Unable to send data.');
+        // 可以在这里实现重连逻辑或将数据保存到队列中
+    }
+    // 注意：不再这里停止MediaRecorder，以允许继续录音或控制停止逻辑的其他部分
+}
 // 接收从服务器返回的识别结果
 ws.onmessage = function(event) {
     let voiceTranscript = '';
@@ -257,7 +275,6 @@ ws.onmessage = function(event) {
 ws.onclose = function() {
     if (recordBtn.classList.contains('recording')) {
         toggleRecording_whisper(); // 停止当前录音
-        toggleRecording_whisper(); // 重新开始录音
     }
 };
 
