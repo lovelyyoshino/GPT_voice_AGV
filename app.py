@@ -590,35 +590,35 @@ if st.session_state["user_input_content"] != "":#如果user_input_content不为�
             context_select_index = set_context_list.index(
                         st.session_state["context_select" + current_chat + "value"])
             
-            num =0 #指令数字
-            count = 0 # 计数器，最多调api三次
-            if context_select_index == 0:# 代表是需要从头开始理解（场景理解）
-                while (num > 13 or num < 1) and count<3:
-                    r = openai.ChatCompletion.create(
-                        model=st.session_state["select_model"],
-                        messages=history_need_input,
-                        stream=True,
-                        **paras_need_input,
-                    )
-                    respone_msg = ""
-                    for e in r:
-                        if "content" in e["choices"][0]["delta"]:
-                            respone_msg += e["choices"][0]["delta"]["content"]
-                    #找到回复中的数字，范围为1-13
-                    num = re.findall(r"\d+", respone_msg)
-                    #num = "1" ####################################################### 这里是为了防止测试卡死，后面会删掉
-                    #需要大于[]
-                    if len(num) > 0:
-                        num = int(num[0])
-                        if num > 0 and num < 14:
-                            index_contect = set_context_list[num]
-                            history_need_input, paras_need_input = get_twice_model_input(index_contect)
-                            break
-                    else:
-                        count += 1
-                        num = 0
+            #num =0 #指令数字
+            #count = 0 # 计数器，最多调api三次
+            #if context_select_index == 0:# 代表是需要从头开始理解（场景理解）
+            #    while (num > 13 or num < 1) and count<3:
+            #        r = openai.ChatCompletion.create(
+            #            model=st.session_state["select_model"],
+            #            messages=history_need_input,
+            #            stream=True,
+            #            **paras_need_input,
+            #        )
+            #        respone_msg = ""
+            #        for e in r:
+            #            if "content" in e["choices"][0]["delta"]:
+            #                respone_msg += e["choices"][0]["delta"]["content"]
+            #        #找到回复中的数字，范围为1-13
+            #        num = re.findall(r"\d+", respone_msg)
+            #        #num = "1" ####################################################### 这里是为了防止测试卡死，后面会删掉
+            #        #需要大于[]
+            #        if len(num) > 0:
+            #            num = int(num[0])
+            #            if num > 0 and num < 14:
+            #                index_contect = set_context_list[num]
+            #                history_need_input, paras_need_input = get_twice_model_input(index_contect)
+            #                break
+            #        else:
+            #            count += 1
+            #            num = 0
             # print("context_select_index:",context_select_index)
-            if context_select_index > 13:#这个代表不在指令集里面，需要借助chromaDB回答问题
+            if context_select_index > 10:#这个代表不在指令集里面，需要借助chromaDB回答问题，set_context.py中的数量
                 if apikey := st.session_state["apikey_input"]:
                     dbapi_key = apikey
                 # 配置临时apikey，此时不会留存聊天记录，适合公开使用
@@ -646,7 +646,7 @@ if st.session_state["user_input_content"] != "":#如果user_input_content不为�
         except (FileNotFoundError, KeyError):
             area_error.error(
                 "缺失 OpenAI API Key，请在复制项目后配置Secrets，或者在模型选项中进行临时配置。"
-                "详情见[项目仓库](https://github.com/PierXuY/ChatGPT-Assistant)。"
+                "详情见[项目仓库](https://github.com/lovelyyoshino/GPT_voice_AGV)。"
             )
         except openai.error.AuthenticationError:
             area_error.error("无效的 OpenAI API Key。")
